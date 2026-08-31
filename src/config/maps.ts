@@ -3,33 +3,32 @@ export const MAP_CONFIGS: Record<string, MapConfig> = {
     id: 'AmbroseValley',
     name: 'Ambrose Valley',
     imageUrl: '/maps/AmbroseValley_Minimap.png',
-    worldBounds: {
-      minX: -400,
-      maxX: 400,
-      minZ: -400,
-      maxZ: 400
+    Scale: 900,
+    Origin:{
+      x: -370,
+      z: -473 
     }
   },
   GrandRift: {
     id: 'GrandRift',
     name: 'Grand Rift',
     imageUrl: '/maps/GrandRift_Minimap.png',
-    worldBounds: {
-      minX: -350,
-      maxX: 350,
-      minZ: -350,
-      maxZ: 350
+    Scale: 581,
+    Origin:{
+      x: -290,
+      z: -290 
     }
+    
   },
   Lockdown: {
     id: 'Lockdown',
     name: 'Lockdown',
     imageUrl: '/maps/Lockdown_Minimap.jpg',
-    worldBounds: {
-      minX: -250,
-      maxX: 250,
-      minZ: -250,
-      maxZ: 250
+   
+    Scale: 1000,
+    Origin:{
+      x: -500,
+      z: -500 
     }
   }
 };

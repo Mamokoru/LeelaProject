@@ -11,26 +11,23 @@ export class CoordinateMapper {
   }
 
   worldToCanvas(worldX: number, worldZ: number): { x: number; y: number } {
-    const { minX, maxX, minZ, maxZ } = this.mapConfig.worldBounds;
+
+    const u = (worldX - this.mapConfig.Origin.x) / this.mapConfig.Scale
+    const v = (worldZ - this.mapConfig.Origin.z) / this.mapConfig.Scale
     
-    const normalizedX = (worldX - minX) / (maxX - minX);
-    const normalizedZ = (worldZ - minZ) / (maxZ - minZ);
-    
+    const pixel_x = u * this.canvasWidth;
+    const pixel_y = (1 - v) * this.canvasHeight;
+
     return {
-      x: normalizedX * this.canvasWidth,
-      y: normalizedZ * this.canvasHeight
+      x: pixel_x,
+      y: pixel_y
     };
   }
 
   canvasToWorld(canvasX: number, canvasY: number): { x: number; z: number } {
-    const { minX, maxX, minZ, maxZ } = this.mapConfig.worldBounds;
-    
-    const normalizedX = canvasX / this.canvasWidth;
-    const normalizedZ = canvasY / this.canvasHeight;
-    
     return {
-      x: minX + normalizedX * (maxX - minX),
-      z: minZ + normalizedZ * (maxZ - minZ)
+      x: (canvasX / this.canvasWidth ) *this.mapConfig.Scale +this.mapConfig.Origin.x,
+      z: (canvasY / this.canvasHeight) *this.mapConfig.Scale +this.mapConfig.Origin.z
     };
   }
 }

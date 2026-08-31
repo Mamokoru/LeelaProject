@@ -29,10 +29,9 @@ export interface MapConfig {
   id: string;
   name: string;
   imageUrl: string;
-  worldBounds: {
-    minX: number;
-    maxX: number;
-    minZ: number;
-    maxZ: number;
-  };
+  scale:number;
+  Origin:{
+    x: number;
+    z:number;
+  }
 }
