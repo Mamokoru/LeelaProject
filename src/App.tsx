@@ -61,6 +61,7 @@ const App: React.FC = () => {
       // Update available maps and matches
       const maps = Array.from(new Set(newEvents.map(e => e.map_id)));
       const matches = Array.from(new Set(newEvents.map(e => e.match_id)));
+      console.log(maps , matches)
       setAvailableMaps(maps);
       setAvailableMatches(matches);
       
@@ -187,10 +188,20 @@ const App: React.FC = () => {
           <input
             type="file"
             multiple
-            accept=".parquet"
+            accept=".nakama-0,.nakama-1,.nakama-2,.parquet"
             onChange={(e) => {
               e.preventDefault();
-              handleFileUpload(Array.from(e.target.files || []));
+              const files = Array.from(e.target.files || []);
+              
+              // Filter for valid files
+              const validFiles = files.filter(file => 
+                file.name.includes('.nakama-') || file.name.endsWith('.parquet')
+              );
+              
+              if (validFiles.length > 0) {
+                handleFileUpload(validFiles);
+              }
+              
               e.target.value = ''; // Reset input
             }}
             className="block w-full text-sm text-gray-400
