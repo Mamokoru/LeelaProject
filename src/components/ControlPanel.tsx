@@ -91,7 +91,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
       <h2 className="text-xl font-bold text-white mb-4">Controls</h2>
       
       {/* Map Filter */}
-      <div>
+      {/* <div>
         <label className="block text-sm font-medium text-gray-300 mb-1">
           Map
         </label>
@@ -106,10 +106,10 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
             <option key={map} value={map}>{map}</option>
           ))}
         </select>
-      </div>
+      </div> */}
       
       {/* Match Filter */}
-      <div>
+      {/* <div>
         <label className="block text-sm font-medium text-gray-300 mb-1">
           Match
         </label>
@@ -124,7 +124,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
             <option key={match} value={match}>{match}</option>
           ))}
         </select>
-      </div>
+      </div> */}
       
       {/* Player Type Filters */}
       <div className="space-y-2">
