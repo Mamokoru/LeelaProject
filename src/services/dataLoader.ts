@@ -12,6 +12,8 @@ export interface MatchInfo {
   matchId: string;
   fileCount: number;
   files: string[];
+  playerCount: number;
+  botCount: number;
 }
 
 export interface TelemetryEvent {

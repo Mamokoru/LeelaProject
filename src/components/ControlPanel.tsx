@@ -2,8 +2,7 @@
 import React, { useCallback } from 'react';
 
 interface FilterState {
-  mapId: string;
-  matchId: string;
+
   showHumans: boolean;
   showBots: boolean;
   showEventTypes: Record<string, boolean>;

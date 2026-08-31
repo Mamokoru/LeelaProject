@@ -1,12 +1,12 @@
 export interface TelemetryEvent {
   user_id: string;
   match_id: string;
-  map_id: 'AmbroseValley' | 'GrandRift' | 'Lockdown';
+  map_id: string;
   x: number;
   y: number;
   z: number;
   ts: number;
-  event: 'Position' | 'BotPosition' | 'Kill' | 'Killed' | 'BotKill' | 'BotKilled' | 'KilledByStorm' | 'Loot';
+  event: string;
 }
 
 export interface PlayerJourney {

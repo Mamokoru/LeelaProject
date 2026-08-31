@@ -6,8 +6,6 @@ import { DataLoader, TelemetryEvent, MatchInfo } from './services/dataLoader';
 import { MatchData, PlayerJourney } from './types';
 
 interface FilterState {
-  mapId: string;
-  matchId: string;
   showHumans: boolean;
   showBots: boolean;
   showEventTypes: Record<string, boolean>;
@@ -18,16 +16,17 @@ const App: React.FC = () => {
   const [dataLoader] = useState(() => new DataLoader('http://localhost:3001'));
   const [isInitialized, setIsInitialized] = useState(false);
   const [availableDates, setAvailableDates] = useState<string[]>([]);
+  const [maps,SetMaps] =  useState<string[]>([]);
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [availableMatches, setAvailableMatches] = useState<MatchInfo[]>([]);
+  const [filteredMatches, setFilteredMatches] = useState<MatchInfo[]>([]);
   const [selectedMatch, setSelectedMatch] = useState<string>('all');
+  const [selectedMap, setSelectedMap] = useState<string>('all');
   const [allEvents, setAllEvents] = useState<TelemetryEvent[]>([]);
   const [matchData, setMatchData] = useState<MatchData | null>(null);
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [filters, setFilters] = useState<FilterState>({
-    mapId: 'all',
-    matchId: 'all',
     showHumans: true,
     showBots: true,
     showEventTypes: {
@@ -74,6 +73,17 @@ const App: React.FC = () => {
     
     loadMatches();
   }, [selectedDate, dataLoader]);
+
+  useEffect(() => {
+    if(!allEvents || !availableMatches) return
+    if(selectedMap == 'all'){
+      setFilteredMatches(availableMatches)
+    }
+    else{
+      var CurrentmapEvent = allEvents.filter(k=>k.map_id == selectedMap);
+      setFilteredMatches(availableMatches.filter(t=> { return CurrentmapEvent.some(k=>k.match_id.split('.')[0] == t.matchId)}));
+    }
+  },[selectedMap])
 
   // Load data when date or match changes
   const handleLoadData = useCallback(async () => {
@@ -150,6 +160,8 @@ const App: React.FC = () => {
         setCurrentTime(firstMatch.startTime);
       }
       
+      SetMaps(Array.from(new Set(events.map(e => e.map_id))));
+
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -175,9 +187,9 @@ const App: React.FC = () => {
           setIsPlaying(false);
           return matchData.startTime;
         }
-        return prev + 1000;
+        return prev + 1;
       });
-    }, 100);
+    }, 1000);
     
     return () => clearInterval(interval);
   }, [isPlaying, matchData]);
@@ -210,6 +222,25 @@ const App: React.FC = () => {
               </select>
             </div>
             
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Select Map
+              </label>
+              <select
+                className="w-full bg-gray-700 text-white rounded p-2 cursor-pointer"
+                value={selectedMap}
+                onChange={(e) => setSelectedMap(e.target.value)}
+                disabled={!selectedDate}
+              >
+                <option value="all">All Maps ({maps.length})</option>
+                {maps.map(match => (
+                  <option key={match} value={match}>
+                    {match}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             {/* Match Selection */}
             <div>
               <label className="block text-sm font-medium mb-2">
@@ -221,8 +252,8 @@ const App: React.FC = () => {
                 onChange={(e) => setSelectedMatch(e.target.value)}
                 disabled={!selectedDate}
               >
-                <option value="all">All Matches ({availableMatches.length})</option>
-                {availableMatches.map(match => (
+                <option value="all">All Matches ({filteredMatches.length})</option>
+                {filteredMatches.map(match => (
                   <option key={match.matchId} value={match.matchId}>
                     {match.matchId.slice(0, 8)}... 
                     ({match.playerCount} players, {match.botCount} bots)
@@ -276,7 +307,7 @@ const App: React.FC = () => {
               <div>
                 <p className="text-sm text-gray-400">Match Duration</p>
                 <p className="text-xl font-bold">
-                  {matchData ? Math.round((matchData.endTime - matchData.startTime) / 1000) : 0}s
+                  {matchData ? Math.round((matchData.endTime - matchData.startTime) ) : 0}s
                 </p>
               </div>
               <div>
