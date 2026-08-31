@@ -36,6 +36,7 @@ const App: React.FC = () => {
   });
   const [currentTime, setCurrentTime] = useState(0);
   const [maxTime, setMaxTime] = useState(0);
+  const [minTime, setMinTime] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [availableMaps, setAvailableMaps] = useState<string[]>([]);
   const [availableMatches, setAvailableMatches] = useState<string[]>([]);
@@ -61,7 +62,6 @@ const App: React.FC = () => {
       // Update available maps and matches
       const maps = Array.from(new Set(newEvents.map(e => e.map_id)));
       const matches = Array.from(new Set(newEvents.map(e => e.match_id)));
-      console.log(maps , matches)
       setAvailableMaps(maps);
       setAvailableMatches(matches);
       
@@ -134,7 +134,8 @@ const App: React.FC = () => {
     if (firstMatch) {
       setMatchData(firstMatch);
       setMaxTime(firstMatch.endTime || 0);
-      setCurrentTime(prev => Math.min(prev, firstMatch.endTime || 0));
+      setMinTime(firstMatch.startTime || 0)
+      setCurrentTime(firstMatch.endTime);
     }
     
   }, [allEvents, filters.mapId, filters.matchId]);
@@ -142,16 +143,18 @@ const App: React.FC = () => {
   // Playback effect
   useEffect(() => {
     if (!isPlaying || !matchData) return;
-    
+    if(currentTime == matchData.endTime){
+      setCurrentTime(matchData.startTime)
+    }
     const interval = setInterval(() => {
       setCurrentTime(prev => {
         if (prev >= matchData.endTime) {
           setIsPlaying(false);
-          return matchData.startTime;
+          return matchData.endTime;
         }
-        return prev + 1000; // Advance 1 second
+        return prev + 1; // Advance 1 second
       });
-    }, 100);
+    }, 1000);
     
     return () => clearInterval(interval);
   }, [isPlaying, matchData]);
@@ -233,6 +236,7 @@ const App: React.FC = () => {
                 currentTime={currentTime}
                 setCurrentTime={setCurrentTime}
                 maxTime={maxTime}
+                minTime={minTime}
                 isPlaying={isPlaying}
                 setIsPlaying={setIsPlaying}
               />

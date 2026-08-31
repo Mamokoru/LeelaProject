@@ -18,6 +18,7 @@ interface ControlPanelProps {
   currentTime: number;
   setCurrentTime: React.Dispatch<React.SetStateAction<number>>;
   maxTime: number;
+  minTime:number;
   isPlaying: boolean;
   setIsPlaying: React.Dispatch<React.SetStateAction<boolean>>;
 }
@@ -30,6 +31,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
   currentTime,
   setCurrentTime,
   maxTime,
+  minTime,
   isPlaying,
   setIsPlaying
 }) => {
@@ -199,7 +201,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
         </label>
         <input
           type="range"
-          min={0}
+          min={minTime || 0}
           max={maxTime || 1}
           value={currentTime}
           onChange={handleTimeChange}
@@ -208,7 +210,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
         />
         <div className="flex items-center justify-between mt-2">
           <span className="text-gray-400 text-sm">
-            {formatTime(currentTime)}
+            {(  currentTime- minTime) }
           </span>
           <button
             onClick={handlePlayPause}
