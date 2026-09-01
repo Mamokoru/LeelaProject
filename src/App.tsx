@@ -193,7 +193,7 @@ const App: React.FC = () => {
       if(MergedMatchesData){
         setMaxTime(MergedMatchesData.endTime);
         setMinTime(MergedMatchesData.startTime)
-        setCurrentTime(MergedMatchesData.startTime);
+        setCurrentTime(MergedMatchesData.endTime);
         setMatchData(MergedMatchesData);
       }
     }
@@ -202,7 +202,7 @@ const App: React.FC = () => {
       if(matchData){
         setMaxTime(matchData.endTime);
         setMinTime(matchData.startTime)
-        setCurrentTime(matchData.startTime);
+        setCurrentTime(matchData.endTime);
         setMatchData(matchData);
       }
     }
