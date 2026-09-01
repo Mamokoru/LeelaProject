@@ -9,7 +9,7 @@ import { VisualState, FilterState, MatchData, PlayerJourney } from './types';
 
 
 const App: React.FC = () => {
-  const [dataLoader] = useState(() => new DataLoader('http://localhost:3001'));
+  const [dataLoader] = useState(() => new DataLoader());
   const [isInitialized, setIsInitialized] = useState(false);
   const [availableDates, setAvailableDates] = useState<string[]>([]);
   const [selectedState, setSelectedState] = useState<VisualState>();

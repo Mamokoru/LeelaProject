@@ -2,6 +2,7 @@
 import express from 'express';
 import cors from 'cors';
 import fs from 'fs';
+import https from 'https';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -9,13 +10,22 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const HTTP_PORT = Number(process.env.PORT || 3001);
+const HTTPS_PORT = Number(process.env.HTTPS_PORT || 3443);
+const certPath = path.join(__dirname, '../certs');
+const certOptions = {
+  key: fs.readFileSync(path.join(certPath, 'localhost-key.pem')),
+  cert: fs.readFileSync(path.join(certPath, 'localhost-cert.pem'))
+};
 
 app.use(cors());
 app.use(express.json());
 
 // Configure your data directory
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, '../data');
+const DIST_DIR = path.join(__dirname, '../dist');
+
+// API routes must be defined before the frontend fallback.
 
 // API endpoint to list available dates
 app.get('/api/dates', (req, res) => {
@@ -139,7 +149,20 @@ app.get('/api/match/:date/:matchId', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+if (fs.existsSync(DIST_DIR)) {
+  app.use(express.static(DIST_DIR));
+
+  app.get(/^(?!\/api).*/, (req, res) => {
+    res.sendFile(path.join(DIST_DIR, 'index.html'));
+  });
+}
+
+https.createServer(certOptions, app).listen(HTTPS_PORT, () => {
+  console.log(`HTTPS server running on https://localhost:${HTTPS_PORT}`);
   console.log(`Data directory: ${DATA_DIR}`);
+  console.log(`Frontend dist path: ${DIST_DIR}`);
+});
+
+app.listen(HTTP_PORT, () => {
+  console.log(`HTTP server running on http://localhost:${HTTP_PORT}`);
 });

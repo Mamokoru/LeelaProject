@@ -32,8 +32,13 @@ export class DataLoader {
   private conn: duckdb.AsyncDuckDBConnection | null = null;
   private serverUrl: string;
 
-  constructor(serverUrl: string = 'http://localhost:3001') {
-    this.serverUrl = serverUrl;
+  constructor(serverUrl?: string) {
+    const apiUrl = (serverUrl && serverUrl.trim().length > 0)
+      ? serverUrl
+      : '';
+
+    const normalized = apiUrl === '/' ? '' : apiUrl;
+    this.serverUrl = normalized.replace(/\/$/, '');
   }
 
   async initialize() {
