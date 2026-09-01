@@ -19,7 +19,7 @@ const App: React.FC = () => {
   const [selectedMap, setSelectedMap] = useState<string>('all');
   const [filteredMatches, setFilteredMatches] = useState<string[]>([]);
   const [selectedDate, setSelectedDate] = useState<string>('');
-  
+  const [Loading, setLoading] = useState(false);
 
   const [allEvents, setAllEvents] = useState<TelemetryEvent[]>([]);
   const [matchData, setMatchData] = useState<MatchData | null>(null);
@@ -64,9 +64,9 @@ const App: React.FC = () => {
   },[isInitialized]);
 
   const handleDateChange = useCallback( async (date: string) => {
-
+    setLoading(true);
     const AllDayEvents = await dataLoader.loadDateData(date);
-      console.log("Matches for date:", AllDayEvents);
+      // console.log("Matches for date:", AllDayEvents);
 
       let uniqueMaps = new Set<string>();
       let MatchesOnMap = new Map<string, string[]>();
@@ -121,7 +121,7 @@ const App: React.FC = () => {
       
       // console.log("Unique Maps:", Array.from(uniqueMaps));
       // console.log("Matches on Map:", MatchesOnMap);
-      console.log("Matches to MatchData:", MatchesToMatchData);
+      // console.log("Matches to MatchData:", MatchesToMatchData);
 
       SetMaps(Array.from(uniqueMaps));
       SetMatchOnMap(MatchesOnMap);
@@ -134,10 +134,11 @@ const App: React.FC = () => {
           SelectedType: "Match",
           SelectedId: uniqueMaps.size > 0 ? Array.from(MatchesToMatchData.keys())[0] : 'none'
         }};
-        console.log("Initial selected state:", initialSelectedState);
+        // console.log("Initial selected state:", initialSelectedState);
 
       // setSelectedMatch(uniqueMaps.size > 0 ? Array.from(MatchesToMatchData.keys())[0] : 'none');  
       setSelectedState(initialSelectedState);
+      setLoading(false);
   }, []);
 
   // Load data Map changes
@@ -188,7 +189,7 @@ const App: React.FC = () => {
             });
         }}); 
       });
-      console.log("Merged Matches Data for map:", selectedState.SelectedSecondary.SelectedId, MergedMatchesData);
+      // console.log("Merged Matches Data for map:", selectedState.SelectedSecondary.SelectedId, MergedMatchesData);
       if(MergedMatchesData){
         setMaxTime(MergedMatchesData.endTime);
         setMinTime(MergedMatchesData.startTime)
@@ -253,6 +254,17 @@ const App: React.FC = () => {
     return () => clearInterval(interval);
   }, [isPlaying, matchData]);
 
+  if(Loading){
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white">
+        <div className="text-center">
+          <p className="text-xl font-bold">Loading...</p>
+          <p className="text-gray-400 mt-2">Please wait while we load the data.</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       <header className="bg-gray-800 border-b border-gray-700 p-4">
@@ -260,6 +272,8 @@ const App: React.FC = () => {
         <p className="text-gray-400">Player Behavior Visualization</p>
       </header>
       
+      
+
       <div className="container mx-auto p-4">
         {/* Date and Match Selection */}
         <div className="mb-6 p-4 bg-gray-800 rounded-lg">
