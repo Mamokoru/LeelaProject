@@ -11,7 +11,7 @@ export interface FileMetadata {
 export interface MatchInfo {
   matchId: string;
   fileCount: number;
-  files: string[];
+  files: any[];
   playerCount: number;
   botCount: number;
 }

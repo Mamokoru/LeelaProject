@@ -1,23 +1,8 @@
 // src/components/MapVisualizer.tsx
-import React, { useEffect, useRef, useState, useCallback, use } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { CoordinateMapper } from '../utils/coordinateMapper';
 import { MAP_CONFIGS } from '../config/maps';
-import { TelemetryEvent, PlayerJourney, MatchData } from '../types';
-
-interface MapVisualizerProps {
-  matchData: MatchData;
-  selectedMap: string;
-  filters: FilterState;
-  currentTime: number;
-  showHeatmap: boolean;
-  heatmapType: 'kills' | 'deaths' | 'traffic';
-}
-
-interface ViewportState {
-  scale: number;
-  offsetX: number;
-  offsetY: number;
-}
+import { ViewportState,  MapVisualizerProps, FilterState,  MatchData } from '../types';
 
 export const MapVisualizer: React.FC<MapVisualizerProps> = ({
   matchData,
@@ -257,7 +242,7 @@ export const MapVisualizer: React.FC<MapVisualizerProps> = ({
     filters: FilterState,
     currentTime: number
   ) => {
-    const eventTypes = {
+    const eventTypes: Record<string, { color: string; radius: number; icon: string }> = {
       Kill: { color: '#FF4136', radius: 6, icon: '⚔' },
       Killed: { color: '#FF4136', radius: 6, icon: '💀' },
       BotKill: { color: '#FF851B', radius: 5, icon: '🤖' },

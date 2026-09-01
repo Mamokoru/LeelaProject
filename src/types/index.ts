@@ -29,9 +29,38 @@ export interface MapConfig {
   id: string;
   name: string;
   imageUrl: string;
-  scale:number;
+  Scale:number;
   Origin:{
     x: number;
     z:number;
+  }
+}
+
+export interface FilterState {
+  showHumans: boolean;
+  showBots: boolean;
+  showEventTypes: Record<string, boolean>;
+  heatmapType: string;
+}
+
+export interface MapVisualizerProps {
+  matchData: MatchData;
+  selectedMap: string;
+  filters: FilterState;
+  currentTime: number;
+  showHeatmap: boolean;
+  heatmapType: 'kills' | 'deaths' | 'traffic';
+}
+
+export interface ViewportState {
+  scale: number;
+  offsetX: number;
+  offsetY: number;
+}
+export interface VisualState{
+  SelectedDate: string;
+  SelectedSecondary:{
+    SelectedType: "Map" | "Match";
+    SelectedId: string;
   }
 }

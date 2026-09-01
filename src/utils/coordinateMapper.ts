@@ -1,4 +1,5 @@
-// src/utils/coordinateMapper.ts
+import { MapConfig } from '../types';
+
 export class CoordinateMapper {
   private mapConfig: MapConfig;
   private canvasWidth: number;

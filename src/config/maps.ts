@@ -1,3 +1,5 @@
+import { MapConfig } from '../types';
+
 export const MAP_CONFIGS: Record<string, MapConfig> = {
   AmbroseValley: {
     id: 'AmbroseValley',

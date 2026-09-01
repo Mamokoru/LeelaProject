@@ -3,22 +3,10 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { MapVisualizer } from './components/MapVisualizer';
 import { ControlPanel } from './components/ControlPanel';
 import { DataLoader, TelemetryEvent, MatchInfo } from './services/dataLoader';
-import { MatchData, PlayerJourney } from './types';
+import { VisualState, FilterState, MatchData, PlayerJourney } from './types';
 
-interface FilterState {
-  showHumans: boolean;
-  showBots: boolean;
-  showEventTypes: Record<string, boolean>;
-  heatmapType: string;
-}
 
-interface VisualState{
-  SelectedDate: string;
-  SelectedSecondary:{
-    SelectedType: "Map" | "Match";
-    SelectedId: string;
-  }
-}
+
 
 const App: React.FC = () => {
   const [dataLoader] = useState(() => new DataLoader('http://localhost:3001'));
