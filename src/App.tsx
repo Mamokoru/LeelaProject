@@ -385,22 +385,22 @@ const App: React.FC = () => {
   //   }
   // }, [selectedDate, handleLoadData]);
 
-  // // Playback effect
-  // useEffect(() => {
-  //   if (!isPlaying || !matchData) return;
+  // Playback effect
+  useEffect(() => {
+    if (!isPlaying || !matchData) return;
     
-  //   const interval = setInterval(() => {
-  //     setCurrentTime(prev => {
-  //       if (prev >= matchData.endTime) {
-  //         setIsPlaying(false);
-  //         return matchData.startTime;
-  //       }
-  //       return prev + 1;
-  //     });
-  //   }, 1000);
+    const interval = setInterval(() => {
+      setCurrentTime(prev => {
+        if (prev >= matchData.endTime) {
+          setIsPlaying(false);
+          return matchData.startTime;
+        }
+        return prev + 1;
+      });
+    }, 1000);
     
-  //   return () => clearInterval(interval);
-  // }, [isPlaying, matchData]);
+    return () => clearInterval(interval);
+  }, [isPlaying, matchData]);
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
