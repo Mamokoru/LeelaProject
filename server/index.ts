@@ -20,6 +20,7 @@ const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, '../data');
 // API endpoint to list available dates
 app.get('/api/dates', (req, res) => {
   try {
+    console.log(`Reading data directory: ${DATA_DIR}`);
     const dates = fs.readdirSync(DATA_DIR)
       .filter(item => {
         const fullPath = path.join(DATA_DIR, item);

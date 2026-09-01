@@ -12,16 +12,27 @@ interface FilterState {
   heatmapType: string;
 }
 
+interface VisualState{
+  SelectedDate: string;
+  SelectedSecondary:{
+    SelectedType: "Map" | "Match";
+    SelectedId: string;
+  }
+}
+
 const App: React.FC = () => {
   const [dataLoader] = useState(() => new DataLoader('http://localhost:3001'));
   const [isInitialized, setIsInitialized] = useState(false);
   const [availableDates, setAvailableDates] = useState<string[]>([]);
+  const [selectedState, setSelectedState] = useState<VisualState>();
   const [maps,SetMaps] =  useState<string[]>([]);
-  const [selectedDate, setSelectedDate] = useState<string>('');
-  const [availableMatches, setAvailableMatches] = useState<MatchInfo[]>([]);
-  const [filteredMatches, setFilteredMatches] = useState<MatchInfo[]>([]);
-  const [selectedMatch, setSelectedMatch] = useState<string>('all');
+  const [matchOnMap, SetMatchOnMap] =  useState<Map<string,string[]>>(new Map());
+  const [matches, SetMatches] = useState<Map<string,MatchData>>(new Map());
   const [selectedMap, setSelectedMap] = useState<string>('all');
+  const [filteredMatches, setFilteredMatches] = useState<string[]>([]);
+  const [selectedDate, setSelectedDate] = useState<string>('');
+  
+
   const [allEvents, setAllEvents] = useState<TelemetryEvent[]>([]);
   const [matchData, setMatchData] = useState<MatchData | null>(null);
   const [loadingProgress, setLoadingProgress] = useState(0);
@@ -44,9 +55,11 @@ const App: React.FC = () => {
   const [minTime, setMinTime] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
 
-  // Initialize loader and fetch available dates
   useEffect(() => {
     const init = async () => {
+
+      if(isInitialized) return;
+
       await dataLoader.initialize();
       setIsInitialized(true);
       
@@ -56,143 +69,338 @@ const App: React.FC = () => {
       if (dates.length > 0) {
         setSelectedDate(dates[0]); // Select most recent date by default
       }
+      
+      handleDateChange(dates[0]);
     };
-    
     init();
-  }, [dataLoader]);
+  },[isInitialized]);
 
-  // Load matches when date changes
-  useEffect(() => {
-    if (!selectedDate) return;
-    
-    const loadMatches = async () => {
-      const matches = await dataLoader.getMatchesForDate(selectedDate);
-      setAvailableMatches(matches);
-      setSelectedMatch('all');
-    };
-    
-    loadMatches();
-  }, [selectedDate, dataLoader]);
+  const handleDateChange = useCallback( async (date: string) => {
 
+    const AllDayEvents = await dataLoader.loadDateData(date);
+      console.log("Matches for date:", AllDayEvents);
+
+      let uniqueMaps = new Set<string>();
+      let MatchesOnMap = new Map<string, string[]>();
+      let Matches = new Map<string, TelemetryEvent[]>();
+      let MatchesToMatchData = new Map<string, MatchData>();
+
+      AllDayEvents.forEach(event => {
+        // Collect unique map IDs
+        if (!uniqueMaps.has(event.map_id)) {
+          uniqueMaps.add(event.map_id);
+        }
+
+        // Group matches by map
+        if (MatchesOnMap.has(event.map_id)) {
+          if (!MatchesOnMap.get(event.map_id)!.includes(event.match_id.split('.')[0])) {
+            MatchesOnMap.set(event.map_id, [...MatchesOnMap.get(event.map_id)!, event.match_id.split('.')[0]]);
+          }
+        }
+        else {
+          MatchesOnMap.set(event.map_id, [event.match_id.split('.')[0]]);
+        }
+        // Group Events by match
+        Matches.set(event.match_id.split('.')[0], [...(Matches.get(event.match_id.split('.')[0]) || []), event]);
+      });
+      Matches.forEach((events, matchId) => {
+        events = events.sort((a, b) => a.ts - b.ts);
+        
+        MatchesToMatchData.set(matchId, {
+          matchId: matchId,
+          mapId: events[0].map_id,
+          players: new Map<string, PlayerJourney>(),
+          startTime: events[0].ts,
+          endTime: events[events.length - 1].ts
+        });
+        
+        events.forEach(event => {
+          if (!(MatchesToMatchData.get(matchId)!.players.has(event.user_id))) {
+            MatchesToMatchData.get(matchId)!.players.set(event.user_id, {
+              userId : event.user_id,
+              matchId : matchId,
+              isBot : /^\d+$/.test(event.user_id),
+              events : [event],
+              path : [{ x: event.x, z: event.z, ts: event.ts }]
+            });
+          }
+          else{
+            MatchesToMatchData.get(matchId)!.players.get(event.user_id )?.events.push(event);
+            MatchesToMatchData.get(matchId)!.players.get(event.user_id )?.path.push({ x: event.x, z: event.z, ts: event.ts });
+          }
+        })
+      });
+      
+      // console.log("Unique Maps:", Array.from(uniqueMaps));
+      // console.log("Matches on Map:", MatchesOnMap);
+      console.log("Matches to MatchData:", MatchesToMatchData);
+
+      SetMaps(Array.from(uniqueMaps));
+      SetMatchOnMap(MatchesOnMap);
+      SetMatches(MatchesToMatchData);
+      setFilteredMatches(Array.from(MatchesToMatchData.keys()));
+      
+      let initialSelectedState: VisualState = {
+        SelectedDate: date,
+        SelectedSecondary:{
+          SelectedType: "Match",
+          SelectedId: uniqueMaps.size > 0 ? Array.from(MatchesToMatchData.keys())[0] : 'none'
+        }};
+        console.log("Initial selected state:", initialSelectedState);
+
+      // setSelectedMatch(uniqueMaps.size > 0 ? Array.from(MatchesToMatchData.keys())[0] : 'none');  
+      setSelectedState(initialSelectedState);
+  }, []);
+
+  // Load data Map changes
   useEffect(() => {
-    if(!allEvents || !availableMatches) return
+    if(!matchOnMap || !matches) return;
     if(selectedMap == 'all'){
-      setFilteredMatches(availableMatches)
+      // console.log("Selected map is 'all', showing all matches." , Array.from(matches.keys()));
+      setFilteredMatches(matches ? Array.from(matches.keys()) : []);
+      if(selectedState && selectedState.SelectedSecondary.SelectedType == "Map" ){
+        setSelectedState({
+          ...selectedState,
+          SelectedSecondary:{
+            SelectedType: "Match",
+            SelectedId: matches ? Array.from(matches.keys())[0] : 'none'
+          }
+        });
+      }
     }
     else{
-      var CurrentmapEvent = allEvents.filter(k=>k.map_id == selectedMap);
-      setFilteredMatches(availableMatches.filter(t=> { return CurrentmapEvent.some(k=>k.match_id.split('.')[0] == t.matchId)}));
+      // console.log("Selected map is not 'all', showing matches for this map." , matchOnMap.get(selectedMap) || []);
+      setFilteredMatches(matchOnMap.get(selectedMap) || []);
     }
   },[selectedMap])
 
-  // Load data when date or match changes
-  const handleLoadData = useCallback(async () => {
-    if (!selectedDate) return;
-    
-    setIsLoading(true);
-    setLoadingProgress(0);
-    
-    try {
-      let events: TelemetryEvent[];
-      
-      if (selectedMatch === 'all') {
-        events = await dataLoader.loadDateData(selectedDate);
-      } else {
-        events = await dataLoader.loadMatchData(selectedDate, selectedMatch);
+  useEffect(() => {
+    if(!selectedState || !matches) return;
+
+    if(selectedState.SelectedSecondary.SelectedType == "Map"){
+      var MergedMatchesData: MatchData ={
+        mapId: selectedState.SelectedSecondary.SelectedId,
+        matchId: "merged",
+        players: new Map<string, PlayerJourney>(),
+        startTime: Infinity,
+        endTime: -Infinity
       }
-      
-      setAllEvents(events);
-      
-      // Process events into match data
-      const matchMap = new Map<string, MatchData>();
-      
-      events.forEach(event => {
-        if (!matchMap.has(event.match_id)) {
-          matchMap.set(event.match_id, {
-            matchId: event.match_id,
-            mapId: event.map_id,
-            players: new Map<string, PlayerJourney>(),
-            startTime: event.ts,
-            endTime: event.ts
-          });
-        }
-        
-        const match = matchMap.get(event.match_id)!;
-        match.startTime = Math.min(match.startTime, event.ts);
-        match.endTime = Math.max(match.endTime, event.ts);
-        
-        if (!match.players.has(event.user_id)) {
-          const isBot = /^\d+$/.test(event.user_id);
-          match.players.set(event.user_id, {
-            userId: event.user_id,
-            matchId: event.match_id,
-            isBot,
-            events: [],
-            path: []
-          });
-        }
-        
-        const journey = match.players.get(event.user_id)!;
-        journey.events.push(event);
-        
-        if (event.event === 'Position' || event.event === 'BotPosition') {
-          journey.path.push({
-            x: event.x,
-            z: event.z,
-            ts: event.ts
-          });
-        }
+      matchOnMap.get(selectedState.SelectedSecondary.SelectedId)?.forEach(matchId => {
+        var matchData = matches.get(matchId);
+        MergedMatchesData.startTime = Math.min(MergedMatchesData.startTime, matchData?.startTime || Infinity);
+        MergedMatchesData.endTime = Math.max(MergedMatchesData.endTime, matchData?.endTime || -Infinity);
+        matchData?.players.forEach((playerJourney, userId) => {
+          if(!MergedMatchesData.players.has(userId+matchId)){
+            MergedMatchesData.players.set(userId+matchId, {
+              userId: userId + matchId,
+              matchId: "merged",
+              isBot: playerJourney.isBot,
+              events: playerJourney.events,
+              path: playerJourney.path
+            });
+        }}); 
       });
-      
-      // Sort and set first match
-      matchMap.forEach(match => {
-        match.players.forEach(journey => {
-          journey.events.sort((a, b) => a.ts - b.ts);
-          journey.path.sort((a, b) => a.ts - b.ts);
+      console.log("Merged Matches Data for map:", selectedState.SelectedSecondary.SelectedId, MergedMatchesData);
+      if(MergedMatchesData){
+        setMaxTime(MergedMatchesData.endTime);
+        setMinTime(MergedMatchesData.startTime)
+        setCurrentTime(MergedMatchesData.startTime);
+        setMatchData(MergedMatchesData);
+      }
+    }
+    else if(selectedState.SelectedSecondary.SelectedType == "Match"){
+      var matchData = matches.get(selectedState.SelectedSecondary.SelectedId);
+      if(matchData){
+        setMaxTime(matchData.endTime);
+        setMinTime(matchData.startTime)
+        setCurrentTime(matchData.startTime);
+        setMatchData(matchData);
+      }
+    }
+  },
+  [selectedState]);
+
+  useEffect(() => {
+    handleDateChange(selectedDate);
+  }, [selectedDate]);
+
+  const HandleMatchChange = (matchId: string) => {
+     if(!selectedState || !matches) return;
+      if(matchId == 'all'){
+        if(selectedMap != 'all'){
+          setSelectedState({
+          ...selectedState,
+          SelectedSecondary:{
+            SelectedType: "Map",
+            SelectedId: selectedMap
+          }
         });
-      });
-      
-      const firstMatch = Array.from(matchMap.values())[0];
-      if (firstMatch) {
-        setMatchData(firstMatch);
-        setMaxTime(firstMatch.endTime);
-        setMinTime(firstMatch.startTime)
-        setCurrentTime(firstMatch.startTime);
-      }
-      
-      SetMaps(Array.from(new Set(events.map(e => e.map_id))));
-
-    } catch (error) {
-      console.error('Error loading data:', error);
-    } finally {
-      setIsLoading(false);
-      setLoadingProgress(100);
-    }
-  }, [selectedDate, selectedMatch, dataLoader]);
-
-  // Auto-load when date changes
-  useEffect(() => {
-    if (selectedDate) {
-      handleLoadData();
-    }
-  }, [selectedDate, handleLoadData]);
-
-  // Playback effect
-  useEffect(() => {
-    if (!isPlaying || !matchData) return;
-    
-    const interval = setInterval(() => {
-      setCurrentTime(prev => {
-        if (prev >= matchData.endTime) {
-          setIsPlaying(false);
-          return matchData.startTime;
         }
-        return prev + 1;
-      });
-    }, 1000);
+      }
+      else{
+        setSelectedState({
+          ...selectedState,
+          SelectedSecondary:{
+            SelectedType: "Match",
+            SelectedId: matchId
+          }
+        });
+      }
+  }
+
+  // Initialize loader and fetch available dates
+  // useEffect(() => {
+  //   const init = async () => {
+  //     await dataLoader.initialize();
+  //     setIsInitialized(true);
+      
+  //     const dates = await dataLoader.getAvailableDates();
+  //     setAvailableDates(dates);
+      
+  //     SetMaps(Array.from(new Set(allEvents.map(e => e.map_id))));
+
+  //     if (dates.length > 0) {
+  //       setSelectedDate(dates[0]); // Select most recent date by default
+  //     }
+  //   };
     
-    return () => clearInterval(interval);
-  }, [isPlaying, matchData]);
+  //   init();
+  // }, [dataLoader]);
+
+  // Load matches when date changes
+  // useEffect(() => {
+  //   if (!selectedDate) return;
+    
+  //   const loadMatches = async () => {
+  //     const matches = await dataLoader.getMatchesForDate(selectedDate);
+  //     setFilteredMatches(matches);
+  //     setAvailableMatches(matches);
+  //     setSelectedMatch('all');
+  //   };
+    
+  //   loadMatches();
+  // }, [selectedDate, dataLoader]);
+
+  // // Load data Map changes
+  // useEffect(() => {
+  //   if(!allEvents || !availableMatches) return
+  //   if(selectedMap == 'all'){
+  //     setFilteredMatches(availableMatches)
+  //   }
+  //   else{
+  //     var CurrentmapEvent = allEvents.filter(k=>k.map_id == selectedMap);
+  //     setFilteredMatches(availableMatches.filter(t=> { return CurrentmapEvent.some(k=>k.match_id.split('.')[0] == t.matchId)}));
+  //   }
+  // },[selectedMap])
+
+  // Load data when date or match changes
+  // const handleLoadData = useCallback(async () => {
+  //   if (!selectedDate) return;
+    
+  //   setIsLoading(true);
+  //   setLoadingProgress(0);
+    
+  //   try {
+  //     let events: TelemetryEvent[];
+      
+  //     if (selectedMatch === 'all') {
+  //       events = await dataLoader.loadDateData(selectedDate);
+  //     } else {
+  //       events = await dataLoader.loadMatchData(selectedDate, selectedMatch);
+  //     }
+      
+  //     setAllEvents(events);
+      
+  //     // Process events into match data
+  //     const matchMap = new Map<string, MatchData>();
+      
+  //     events.forEach(event => {
+  //       if (!matchMap.has(event.match_id)) {
+  //         matchMap.set(event.match_id, {
+  //           matchId: event.match_id,
+  //           mapId: event.map_id,
+  //           players: new Map<string, PlayerJourney>(),
+  //           startTime: event.ts,
+  //           endTime: event.ts
+  //         });
+  //       }
+        
+  //       const match = matchMap.get(event.match_id)!;
+  //       match.startTime = Math.min(match.startTime, event.ts);
+  //       match.endTime = Math.max(match.endTime, event.ts);
+        
+  //       if (!match.players.has(event.user_id)) {
+  //         const isBot = /^\d+$/.test(event.user_id);
+  //         match.players.set(event.user_id, {
+  //           userId: event.user_id,
+  //           matchId: event.match_id,
+  //           isBot,
+  //           events: [],
+  //           path: []
+  //         });
+  //       }
+        
+  //       const journey = match.players.get(event.user_id)!;
+  //       journey.events.push(event);
+        
+  //       if (event.event === 'Position' || event.event === 'BotPosition') {
+  //         journey.path.push({
+  //           x: event.x,
+  //           z: event.z,
+  //           ts: event.ts
+  //         });
+  //       }
+  //     });
+      
+  //     // Sort and set first match
+  //     matchMap.forEach(match => {
+  //       match.players.forEach(journey => {
+  //         journey.events.sort((a, b) => a.ts - b.ts);
+  //         journey.path.sort((a, b) => a.ts - b.ts);
+  //       });
+  //     });
+      
+  //     const firstMatch = Array.from(matchMap.values())[0];
+  //     if (firstMatch) {
+  //       setMatchData(firstMatch);
+  //       setMaxTime(firstMatch.endTime);
+  //       setMinTime(firstMatch.startTime)
+  //       setCurrentTime(firstMatch.startTime);
+  //     }
+      
+    
+
+  //   } catch (error) {
+  //     console.error('Error loading data:', error);
+  //   } finally {
+  //     setIsLoading(false);
+  //     setLoadingProgress(100);
+  //   }
+  // }, [selectedDate, selectedMatch, dataLoader]);
+
+  // // Auto-load when date changes
+  // useEffect(() => {
+  //   if (selectedDate) {
+  //     handleLoadData();
+  //   }
+  // }, [selectedDate, handleLoadData]);
+
+  // // Playback effect
+  // useEffect(() => {
+  //   if (!isPlaying || !matchData) return;
+    
+  //   const interval = setInterval(() => {
+  //     setCurrentTime(prev => {
+  //       if (prev >= matchData.endTime) {
+  //         setIsPlaying(false);
+  //         return matchData.startTime;
+  //       }
+  //       return prev + 1;
+  //     });
+  //   }, 1000);
+    
+  //   return () => clearInterval(interval);
+  // }, [isPlaying, matchData]);
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
@@ -248,30 +456,30 @@ const App: React.FC = () => {
               </label>
               <select
                 className="w-full bg-gray-700 text-white rounded p-2 cursor-pointer"
-                value={selectedMatch}
-                onChange={(e) => setSelectedMatch(e.target.value)}
+                value={selectedState?.SelectedSecondary.SelectedId || 'all'}
+                onChange={(e) => HandleMatchChange(e.target.value)}
                 disabled={!selectedDate}
               >
-                <option value="all">All Matches ({filteredMatches.length})</option>
+                {selectedMap != 'all' && <option value="all">All Matches ({filteredMatches.length})</option>}
                 {filteredMatches.map(match => (
-                  <option key={match.matchId} value={match.matchId}>
-                    {match.matchId.slice(0, 8)}... 
-                    ({match.playerCount} players, {match.botCount} bots)
+                  <option key={match} value={match}>
+                    {match}
+                    {/* ({match.playerCount} players, {match.botCount} bots) */}
                   </option>
                 ))}
               </select>
             </div>
             
             {/* Load Button */}
-            <div className="flex items-end">
+            {/* <div className="flex items-end">
               <button
-                onClick={handleLoadData}
+                // onClick={handleLoadData}
                 disabled={!selectedDate || isLoading}
                 className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {isLoading ? 'Loading...' : 'Load Data'}
               </button>
-            </div>
+            </div> */}
           </div>
           
           {/* Loading Progress */}
@@ -336,8 +544,6 @@ const App: React.FC = () => {
               <ControlPanel
                 filters={filters}
                 setFilters={setFilters}
-                availableMaps={[]}
-                availableMatches={availableMatches.map(m => m.matchId)}
                 currentTime={currentTime}
                 setCurrentTime={setCurrentTime}
                 maxTime={maxTime}

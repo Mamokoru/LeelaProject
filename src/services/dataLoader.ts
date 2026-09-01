@@ -182,7 +182,7 @@ export class DataLoader {
       
       // Update progress
       const progress = Math.min(((i + chunk.length) / files.length) * 100, 100);
-      console.log(`Loading progress: ${progress.toFixed(1)}%`);
+      // console.log(`Loading progress: ${progress.toFixed(1)}%`);
     }
     
     return allEvents;

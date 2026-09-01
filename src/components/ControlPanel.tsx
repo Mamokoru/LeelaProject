@@ -12,8 +12,6 @@ interface FilterState {
 interface ControlPanelProps {
   filters: FilterState;
   setFilters: React.Dispatch<React.SetStateAction<FilterState>>;
-  availableMaps: string[];
-  availableMatches: string[];
   currentTime: number;
   setCurrentTime: React.Dispatch<React.SetStateAction<number>>;
   maxTime: number;
@@ -25,8 +23,6 @@ interface ControlPanelProps {
 export const ControlPanel: React.FC<ControlPanelProps> = ({
   filters,
   setFilters,
-  availableMaps,
-  availableMatches,
   currentTime,
   setCurrentTime,
   maxTime,
@@ -35,17 +31,17 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
   setIsPlaying
 }) => {
   // Use useCallback to prevent unnecessary re-renders
-  const handleMapChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setFilters(prev => ({ ...prev, mapId: e.target.value }));
-  }, [setFilters]);
+  // const handleMapChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+  //   e.preventDefault();
+  //   e.stopPropagation();
+  //   setFilters(prev => ({ ...prev, mapId: e.target.value }));
+  // }, [setFilters]);
 
-  const handleMatchChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setFilters(prev => ({ ...prev, matchId: e.target.value }));
-  }, [setFilters]);
+  // const handleMatchChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+  //   e.preventDefault();
+  //   e.stopPropagation();
+  //   setFilters(prev => ({ ...prev, matchId: e.target.value }));
+  // }, [setFilters]);
 
   const handleHumanToggle = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     e.stopPropagation();
